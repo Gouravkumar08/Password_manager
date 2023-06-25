@@ -1,0 +1,71 @@
+import json
+from cryptography.fernet import Fernet
+import base64
+
+# Generate a valid encryption key
+def generate_key():
+    key = Fernet.generate_key()
+    return key
+
+# Encrypt the data using the encryption key
+def encrypt_data(key, data):
+    cipher_suite = Fernet(key)
+    encrypted_data = cipher_suite.encrypt(data.encode())
+    return encrypted_data
+
+# Decrypt the data using the encryption key
+def decrypt_data(key, encrypted_data):
+    cipher_suite = Fernet(key)
+    decrypted_data = cipher_suite.decrypt(encrypted_data)
+    return decrypted_data.decode()
+
+# Store the encrypted password in a JSON file
+def store_password(site, username, password, key):
+    cipher_suite = Fernet(key)
+    encrypted_password = cipher_suite.encrypt(password.encode())
+    encoded_password = base64.b64encode(encrypted_password).decode()
+    
+    data = {
+        'site': site,
+        'username': username,
+        'password': encoded_password
+    }
+    
+    with open('passwords.json', 'a') as file:
+        file.write(json.dumps(data) + '\n')
+
+# Retrieve and decrypt the password from the JSON file
+def retrieve_password(site, key):
+    cipher_suite = Fernet(key)
+    
+    with open('passwords.json', 'r') as file:
+        for line in file:
+            data = json.loads(line)
+            if data['site'] == site:
+                encoded_password = data['password']
+                encrypted_password = base64.b64decode(encoded_password)
+                decrypted_password = cipher_suite.decrypt(encrypted_password)
+                return decrypted_password.decode()
+    return None
+
+# Main function to interact with the user
+def main():
+    key = generate_key()
+    site = input("Enter the site name: ")
+    username = input("Enter the username: ")
+    password = input("Enter the password: ")
+
+    store_password(site, username, password, key)
+    print("Password stored successfully.")
+
+    retrieve_site = input("Enter the site name to retrieve the password: ")
+    retrieved_password = retrieve_password(retrieve_site, key)
+    if retrieved_password:
+        print("Retrieved password:", retrieved_password)
+    else:
+        print("Password not found.")
+
+# Run the main function
+if __name__ == '__main__':
+    main()
+
